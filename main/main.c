@@ -1,37 +1,55 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 
-SemaphoreHandle_t xSemaphore;
+SemaphoreHandle_t xMutex;
 
-void vTask1(void *pvParameters) {
-    while(1) {
-        if (xSemaphoreTake(xSemaphore, portMAX_DELAY)) {
-            printf("Task1 got the semaphore!\n");
-            xSemaphoreGive(xSemaphore);  // Give it back
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
+void aliceTask(void *pvParameters) {
+    xSemaphoreTake(xMutex, portMAX_DELAY);
+    printf("Alice: took the mutex, doing long task...\n");
+
+    // Simulate long task
+    for (int i = 0; i < 10; i++) {
+        printf("Alice: working... (%d)\n", i);
+        vTaskDelay(pdMS_TO_TICKS(500));  // Total 5 seconds
     }
+
+    printf("Alice: releasing the mutex.\n");
+    xSemaphoreGive(xMutex);
+
+    vTaskDelete(NULL);
 }
 
-void vTask2(void *pvParameters) {
-    while(1) {
-        if (xSemaphoreTake(xSemaphore, portMAX_DELAY)) {
-            printf("Task2 got the semaphore!\n");
-            xSemaphoreGive(xSemaphore);  // Give it back
-            vTaskDelay(pdMS_TO_TICKS(1000));
-        }
+void bobTask(void *pvParameters) {
+    vTaskDelay(pdMS_TO_TICKS(1000));  // Let Alice start first
+
+    printf("Bob: trying to take the mutex (high priority)...\n");
+    xSemaphoreTake(xMutex, portMAX_DELAY);
+    printf("Bob: got the mutex!\n");
+
+    xSemaphoreGive(xMutex);
+    vTaskDelete(NULL);
+}
+
+void carolTask(void *pvParameters) {
+    vTaskDelay(pdMS_TO_TICKS(1500));  // Let Bob start waiting first
+
+    for (int i = 0; i < 5; i++) {
+        printf("Carol: doing some work... (%d)\n", i);
+        vTaskDelay(pdMS_TO_TICKS(500));  // Simulate CPU usage
     }
+
+    vTaskDelete(NULL);
 }
 
 void app_main(void)
 {
-    // vTaskStartScheduler(); is not needed in ESP-IDF. ESP-IDF starts the scheduler automatically after app_main() returns.
+        // vTaskStartScheduler(); is not needed in ESP-IDF. ESP-IDF starts the scheduler automatically after app_main() returns.
 
-    xSemaphore = xSemaphoreCreateBinary();
-    xSemaphoreGive(xSemaphore); // Initial release (so someone can take it)
+    xMutex = xSemaphoreCreateMutex();
 
-    xTaskCreate(vTask1, "Task1", 2048, NULL, 1, NULL);
-    xTaskCreate(vTask2, "Task2", 2048, NULL, 1, NULL);
-
+    xTaskCreate(aliceTask, "Alice", 2048, NULL, 1, NULL);   // Düşük öncelik
+    xTaskCreate(bobTask, "Bob", 2048, NULL, 3, NULL);       // Yüksek öncelik
+    xTaskCreate(carolTask, "Carol", 2048, NULL, 2, NULL);   // Orta öncelik
 }
