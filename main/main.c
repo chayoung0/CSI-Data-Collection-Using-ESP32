@@ -2,6 +2,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "sdkconfig.h"
 
 SemaphoreHandle_t xMutex;
 
@@ -45,11 +46,15 @@ void carolTask(void *pvParameters) {
 
 void app_main(void)
 {
-        // vTaskStartScheduler(); is not needed in ESP-IDF. ESP-IDF starts the scheduler automatically after app_main() returns.
+    // vTaskStartScheduler(); is not needed in ESP-IDF. ESP-IDF starts the scheduler automatically after app_main() returns.
 
-    xMutex = xSemaphoreCreateMutex();
+   /*  xMutex = xSemaphoreCreateMutex();
 
     xTaskCreate(aliceTask, "Alice", 2048, NULL, 1, NULL);   // Düşük öncelik
     xTaskCreate(bobTask, "Bob", 2048, NULL, 3, NULL);       // Yüksek öncelik
-    xTaskCreate(carolTask, "Carol", 2048, NULL, 2, NULL);   // Orta öncelik
+    xTaskCreate(carolTask, "Carol", 2048, NULL, 2, NULL);   // Orta öncelik */
+
+    printf("ssid is: %s\n", CONFIG_SSID);
+    printf("password is: %s\n", CONFIG_PASSWORD);
+
 }

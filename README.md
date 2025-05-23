@@ -1,5 +1,10 @@
 # _Sample project_
 
+ESP-IDF version: 5.4
+Notes:
+- if seeing squiggly lines, clean the build, then build till succeeds
+
+
 (See the README.md file in the upper level 'examples' directory for more information about examples.)
 
 This is the simplest buildable example. The example is used by command `idf.py create-project`
