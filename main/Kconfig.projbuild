@@ -1,4 +1,4 @@
-menu "WIFI"
+menu "ESP32 CSI Collection Tool Config"
 
     config SSID
         string "SSID"

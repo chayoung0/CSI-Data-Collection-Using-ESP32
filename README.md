@@ -3,6 +3,9 @@
 ESP-IDF version: 5.4
 Notes:
 - if seeing squiggly lines, clean the build, then build till succeeds
+- 
+en faydalı kaynaklar
+https://www.youtube.com/watch?v=oHHOCdmLiII
 
 
 (See the README.md file in the upper level 'examples' directory for more information about examples.)
