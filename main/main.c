@@ -6,12 +6,49 @@
 #include "esp_wifi.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "esp_wifi_types.h"  // Added for CSI data types
 
-static const char *TAG = "wifi_example";
+// subcarrier sayısını arttırmak için b/g/n ayarı yapmam lazım!!! unutma
+
+static const char *TAG = "csi_example";
 
 // WiFi credentials
-#define WIFI_SSID "gdsgfsdhjsfgs"
-#define WIFI_PASS "gdfhsgdgsg"
+#define WIFI_SSID "DESKTOP-8H"
+#define WIFI_PASS "0f)8A374"
+
+// CSI callback function - this gets called every time CSI data is received
+//This is like a "listener" function - every time the ESP32 receives WiFi packets with CSI data, this function automatically gets called.
+/* ctx (context): This is a generic pointer that lets you pass extra data to your callback. 
+    Think of it like a "note" you can attach. We set it to NULL because we don't need it, 
+    but you could pass a structure with your own data. */
+static void wifi_csi_cb(void *ctx, wifi_csi_info_t *info){
+    // Basic CSI information
+    ESP_LOGI(TAG, "CSI Data Received!");
+    ESP_LOGI(TAG, "RSSI: %d dBm", info->rx_ctrl.rssi);
+    ESP_LOGI(TAG, "Rate: %d", info->rx_ctrl.rate);
+    ESP_LOGI(TAG, "Channel: %d", info->rx_ctrl.channel);
+    ESP_LOGI(TAG, "Bandwidth: %d", info->rx_ctrl.cwb);
+    ESP_LOGI(TAG, "Data Length: %d bytes", info->len);
+    
+    // The actual CSI data is in info->buf
+    // Each CSI sample contains amplitude and phase information
+    if (info->buf && info->len > 0) {
+        // CSI data is complex numbers (real + imaginary parts)
+        // For now, let's just show the first few samples
+        int8_t *csi_data = (int8_t *)info->buf;
+        
+        ESP_LOGI(TAG, "First few CSI samples:");
+        for (int i = 0; i < 8 && i < info->len; i += 2) {
+            // Each CSI sample has real and imaginary parts
+            int8_t real = csi_data[i];
+            int8_t imag = csi_data[i + 1];
+            ESP_LOGI(TAG, "Sample %d: Real=%d, Imag=%d", i/2, real, imag);
+        }
+    }
+    
+    ESP_LOGI(TAG, "------------------------");
+}
+
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data){
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -29,10 +66,53 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "Connected! IP Address: " IPSTR, IP2STR(&event->ip_info.ip));
     }
+
+    // NOW ENABLE CSI AFTER CONNECTION!
+    ESP_LOGI(TAG, "Enabling CSI data collection...");
+        
+    // Step 1: Set up CSI configuration
+    wifi_csi_config_t csi_config = {
+        .lltf_en = true,        // Enable Long Training Field
+        .htltf_en = true,       // Enable HT Long Training Field  
+        .stbc_htltf2_en = true,        // Enable Space-Time Block Coding
+        .ltf_merge_en = true,   // Enable LTF merging
+        .channel_filter_en = false, // Disable channel filter for now
+        .manu_scale = 0,        // Manual scaling (0 = auto)
+    };
+    
+    // Step 2: Apply the CSI configuration
+    esp_err_t ret = esp_wifi_set_csi_config(&csi_config);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to set CSI config: %s (0x%x)", esp_err_to_name(ret), ret);
+            ESP_LOGE(TAG, "CSI might not be enabled in menuconfig!");
+            ESP_LOGE(TAG, "Check: Component config -> Wi-Fi -> Enable CSI");
+            return;
+        } else {
+            ESP_LOGI(TAG, "CSI config set successfully!");
+    }
+    
+    // Step 3: Register our callback function
+    // YES this is the way espressif intended. You create your own callback function, and pass it to esp_wifi_set_csi_rx_cb()
+    ret = esp_wifi_set_csi_rx_cb(wifi_csi_cb, NULL);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set CSI callback: %s", esp_err_to_name(ret));
+        return;
+    }
+    
+    // Step 4: Enable CSI data collection
+    ret = esp_wifi_set_csi(true);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to enable CSI: %s", esp_err_to_name(ret));
+        return;
+    }
+    
+    ESP_LOGI(TAG, "CSI collection enabled successfully!");
 }
+
 
 void wifi_init_sta(void){
 
+    /** INITIALIZE ALL THE THINGS **/
     //Initialize NVS
     esp_err_t ret = nvs_flash_init(); //Creates storage space for WiFi settings
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -64,8 +144,8 @@ void wifi_init_sta(void){
     //Configure WiFi settings
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASS,
+            .ssid = CONFIG_SSID,
+            .password = CONFIG_PASSWORD,
             .threshold.authmode = WIFI_AUTH_WPA2_PSK, // Security type
         },
     };
@@ -96,7 +176,8 @@ void app_main(void)
 
     // Keep the program running - otherwise watchdog gets angryyyy
     while(1) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS); // Wait 1 second
+        ESP_LOGI(TAG, "Hello from main loop");
+        vTaskDelay(4000 / portTICK_PERIOD_MS); // Wait 1 second
     }
 
     //printf("ssid is: %s\n", CONFIG_SSID);

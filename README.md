@@ -3,9 +3,10 @@
 ESP-IDF version: 5.4
 Notes:
 - if seeing squiggly lines, clean the build, then build till succeeds
-- 
+- also if there are include errors related to cmake, disable the "cmake tools" extension. delete the build folder completely, then rebuild
 en faydalı kaynaklar
 https://www.youtube.com/watch?v=oHHOCdmLiII
+https://github.com/espressif/esp-csi
 
 
 (See the README.md file in the upper level 'examples' directory for more information about examples.)
