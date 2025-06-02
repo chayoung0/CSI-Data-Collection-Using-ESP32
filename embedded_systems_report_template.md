@@ -9,17 +9,17 @@
 |---------------|---------------------|
 | Team Members | Meliha Çağla Kara |
 | Project Start Date | [18/04/2025] |
-| Expected Completion | [23/05/2025] |
+| Expected Completion | [09/06/2025] |
 
 ## 2. Project Milestones & Delivery Plan
 
 | Milestone | Tasks | Deadline | Status<br>(✓/✗) |
 |-----------|-------|----------|-----------------|
 | 1. Requirement Analysis | Define project scope, objectives, and CSI data collection requirements. | [02/05/2025] | ✓ |
-| 2. System Design | ESP32 configuration, Wi-Fi CSI architecture, data flow diagrams. | [03/05/2025] | ✗ |
-| 3. Prototype Development | Implement ESP32 firmware for CSI data collection and Python visualization script. | [05/05/2025] | ✗ |
-| 4. Testing & Debugging | Verify data accuracy, optimize capture rate, debug communication issues. | [16/05/2025] | ✗ |
-| 5. Final Demo & Report | Prepare presentation with live visualization, submit final report. | [23/05/2025] | ✗ |
+| 2. System Design | ESP32 configuration, study Wi-Fi CSI architecture. | [16/05/2025] | ✓ |
+| 3. Prototype Development | Implement ESP32 firmware for CSI data collection and Python visualization script. | [30/05/2025] | ✓ |
+| 4. Testing & Debugging | Verify data accuracy, optimize capture rate, debug communication issues. | [05/06/2025] | ✗ |
+| 5. Final Demo & Report | Prepare presentation with live visualization, data flow diagrams and submit final report. | [09/06/2025] | ✗ |
 
 ## 3. Individual Contribution Plan
 
@@ -44,6 +44,7 @@
 2. Robustness
    ├── 2.1 Error Handling (packet loss recovery, connection reestablishment)
    └── 2.2 Fault Recovery (auto-restart on crash, data backup)
+   └── 2.3 Real-time data logging. Don't lose data upon crashing
 3. Maintainability
    ├── 3.1 Modular Code (separate modules for capture, processing, visualization)
    └── 3.2 Documentation (code comments, setup guide, usage instructions)
@@ -93,14 +94,13 @@ stop
 ## 7. Project Demo Setup
 
 ### Hardware Requirements
-- ESP32 Development Board (preferably ESP32-WROOM-32)
-- USB-to-Serial Adapter (if not built into the board)
+- ESP32 Development Board
+- USB-to-Serial Cable
 - Computer for running visualization software
 - Secondary Wi-Fi device for generating network traffic (optional)
 
 ### Software Requirements
 - ESP-IDF Development Framework
-- Arduino IDE (with ESP32 board support)
 - Python Script (for CSI data visualization)
 
 ### Demo Steps
@@ -114,22 +114,20 @@ stop
 
 | Risk | Probability | Impact | Mitigation Strategy |
 |------|------------|--------|---------------------|
-| ESP32 CSI API Limitations | High | Medium | Research alternative firmware options, use appropriate ESP-IDF version |
-| Serial Communication Bottlenecks | Medium | High | Implement data compression, optimize transfer protocol |
+| ESP32 CSI API Limitations | High | Medium | Use appropriate ESP-IDF version |
+| Serial Communication Bottlenecks | Medium | High | Optimize transfer protocol |
 | Wi-Fi Interference | High | Medium | Include filtering algorithms, environment baseline measurements |
 | Visualization Performance | Medium | Medium | Implement efficient rendering, consider downsampling for display |
 
 ## 9. Conclusion
 
-This report outlines the planned development of the ESP32 CSI Data Gathering and Visualization System, including:
-- ✔ Detailed task breakdown for single-member implementation.
-- ✔ Key milestones with realistic deadlines.
+This report outlines the planned development of the ESP32 CSI Data Gathering and Visualization System:
 - ✔ Quality assurance strategies focused on CSI data reliability.
 - ✔ System architecture and data flow diagrams.
 
 **Next Steps:** Begin implementing the ESP32 firmware for CSI data collection using the ESP-IDF framework.
 
 ## Appendices
-- [A] ESP32 CSI Functionality Documentation
-- [B] GitHub Repository Link (when available)
-- [C] Reference Papers on CSI-based Applications
+- [A] [ESP32 CSI Functionality Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#wi-fi-channel-state-information)
+- [B] [GitHub Repository](https://github.com/chayoung0/CSI-Data-Collection-Using-ESP32)
+- [C] Reference Papers on CSI-based Applications: [Awesome WiFi CSI Sensing](https://github.com/Marsrocky/Awesome-WiFi-CSI-Sensing)
