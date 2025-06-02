@@ -1,24 +1,36 @@
-# _Sample project_
+# CSI Data Collection Using ESP32
 
+**Course:** ELE529E Embedded Systems  
+**Objective:** Ensure reliable CSI data collection and meaningful visualization.
+
+## Project Milestones & Delivery Plan
+
+| Milestone | Tasks | Deadline | Status<br>(✓/✗) |
+|-----------|-------|----------|-----------------|
+| 1. Requirement Analysis | Define project scope, objectives, and CSI data collection requirements. | [02/05/2025] | ✓ |
+| 2. System Design | ESP32 configuration, study Wi-Fi CSI architecture. | [16/05/2025] | ✓ |
+| 3. Prototype Development | Implement ESP32 firmware for CSI data collection and Python visualization script. | [30/05/2025] | ✓ |
+| 4. Testing & Debugging | Verify data accuracy, optimize capture rate, debug communication issues. | [05/06/2025] | ✗ |
+| 5. Final Demo & Report | Prepare presentation with live visualization, data flow diagrams and submit final report. | [09/06/2025] | ✗ |
+
+---
+
+#### Notes
 ESP-IDF version: 5.4
-Notes:
+About build errors:
 - if seeing squiggly lines, clean the build, then build till succeeds
-- also if there are include errors related to cmake, disable the "cmake tools" extension. delete the build folder completely, then rebuild
-en faydalı kaynaklar
-https://www.youtube.com/watch?v=oHHOCdmLiII
+- also if there are include errors related to cmake, disable the "cmake tools" extension. delete the build folder completely, then rebuild  
+
+#### en faydalı kaynaklar
+[How to create your First ESP IDF project](https://www.youtube.com/watch?v=oHHOCdmLiII)
 https://github.com/espressif/esp-csi
-
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+[Getting Started with ESP32 Wireless Networking in C](https://www.youtube.com/watch?v=_dRrarmQiAM)
 
 
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+
+
+---
 
 ## Example folder contents
 

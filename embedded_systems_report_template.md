@@ -37,17 +37,17 @@
 
 **Objective:** Ensure reliable CSI data collection and meaningful visualization.
 
-1. Functional Correctness
-   ├── 1.1 CSI Data Accuracy (validated against reference measurements)
-   ├── 1.2 Sampling Rate (minimum 10 samples/second)
-   └── 1.3 Power Efficiency (<200mA in continuous operation)
-2. Robustness
-   ├── 2.1 Error Handling (packet loss recovery, connection reestablishment)
-   └── 2.2 Fault Recovery (auto-restart on crash, data backup)
-   └── 2.3 Real-time data logging. Don't lose data upon crashing
-3. Maintainability
-   ├── 3.1 Modular Code (separate modules for capture, processing, visualization)
-   └── 3.2 Documentation (code comments, setup guide, usage instructions)
+1. Functional Correctness  
+   ├── 1.1 CSI Data Accuracy (validated against reference measurements)  
+   ├── 1.2 Sampling Rate (minimum 10 samples/second)  
+   └── 1.3 Power Efficiency (<200mA in continuous operation)  
+2. Robustness  
+   ├── 2.1 Error Handling (packet loss recovery, connection reestablishment)  
+   └── 2.2 Fault Recovery (auto-restart on crash, data backup)  
+   └── 2.3 Real-time data logging. Don't lose data upon crashing  
+3. Maintainability  
+   ├── 3.1 Modular Code (separate modules for capture, processing, visualization)  
+   └── 3.2 Documentation (code comments, setup guide, usage instructions)  
 
 ## 5. Project Structure Diagram (PlantUML)
 
@@ -128,6 +128,6 @@ This report outlines the planned development of the ESP32 CSI Data Gathering and
 **Next Steps:** Begin implementing the ESP32 firmware for CSI data collection using the ESP-IDF framework.
 
 ## Appendices
-- [A] [ESP32 CSI Functionality Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#wi-fi-channel-state-information)
-- [B] [GitHub Repository](https://github.com/chayoung0/CSI-Data-Collection-Using-ESP32)
+- [A] [GitHub Repository](https://github.com/chayoung0/CSI-Data-Collection-Using-ESP32)
+- [B] [ESP32 CSI Functionality Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#wi-fi-channel-state-information)
 - [C] Reference Papers on CSI-based Applications: [Awesome WiFi CSI Sensing](https://github.com/Marsrocky/Awesome-WiFi-CSI-Sensing)
