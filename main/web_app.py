@@ -7,6 +7,7 @@ import csv
 import threading
 import time
 from collections import deque
+import math
 
 app = Flask(__name__)
 
@@ -23,6 +24,9 @@ class CSIDataLogger:
         # Store recent data for web display (keep last 100 packets)
         self.recent_data = deque(maxlen=100)
         self.latest_packet = {}
+        
+        # Store plotting data (keep last 200 points for smoother plots)
+        self.plot_data = deque(maxlen=200)
         
     def connect(self):
         try:
@@ -63,6 +67,37 @@ class CSIDataLogger:
         
         return None
     
+    def extract_subcarrier_amplitudes(self, csi_data):
+        """Extract amplitude data for specific subcarriers"""
+        if not csi_data:
+            return {}
+        
+        subcarriers = {}
+        target_indices = [1, 5, 9, 13]  # Subcarriers we want to plot
+        
+        try:
+            for i, target_idx in enumerate(target_indices):
+                if target_idx < len(csi_data):
+                    # CSI data typically comes as [real, imaginary] pairs
+                    if isinstance(csi_data[target_idx], list) and len(csi_data[target_idx]) >= 2:
+                        real = csi_data[target_idx][0]
+                        imag = csi_data[target_idx][1]
+                        # Calculate amplitude: sqrt(real^2 + imag^2)
+                        amplitude = math.sqrt(real**2 + imag**2)
+                        subcarriers[f'subcarrier_{target_idx}'] = amplitude
+                    else:
+                        # If it's just a single value, use it directly
+                        subcarriers[f'subcarrier_{target_idx}'] = abs(csi_data[target_idx])
+                else:
+                    subcarriers[f'subcarrier_{target_idx}'] = 0
+        except (TypeError, IndexError, ValueError) as e:
+            print(f"Error extracting subcarrier data: {e}")
+            # Return default values if extraction fails
+            for target_idx in target_indices:
+                subcarriers[f'subcarrier_{target_idx}'] = 0
+        
+        return subcarriers
+    
     def start_logging(self):
         if not self.serial_conn:
             print("Not connected to ESP32")
@@ -95,6 +130,7 @@ class CSIDataLogger:
                         
                         if csi_data:
                             python_timestamp = datetime.datetime.now().isoformat()
+                            current_time = time.time()
                             
                             row = {
                                 'timestamp': python_timestamp,
@@ -112,6 +148,9 @@ class CSIDataLogger:
                                 self.csv_writer.writerow(row)
                                 self.csv_file.flush()
                             
+                            # Extract subcarrier amplitudes
+                            subcarrier_data = self.extract_subcarrier_amplitudes(csi_data.get('csi_data', []))
+                            
                             # Store for web display
                             self.packet_count += 1
                             display_data = {
@@ -125,8 +164,19 @@ class CSIDataLogger:
                                 'esp_timestamp': csi_data.get('timestamp', 0)
                             }
                             
+                            # Add subcarrier data to display
+                            display_data.update(subcarrier_data)
+                            
                             self.recent_data.append(display_data)
                             self.latest_packet = display_data
+                            
+                            # Store plotting data with timestamp
+                            plot_point = {
+                                'time': current_time,
+                                'rssi': csi_data.get('rssi', 0),
+                                **subcarrier_data
+                            }
+                            self.plot_data.append(plot_point)
                             
                             print(f"CSI packet #{self.packet_count} - RSSI: {csi_data.get('rssi')}dBm")
                         
@@ -161,6 +211,35 @@ class CSIDataLogger:
     def get_latest_packet(self):
         return self.latest_packet
     
+    def get_plot_data(self):
+        """Return data formatted for plotting"""
+        if not self.plot_data:
+            return {'time': [], 'rssi': [], 'subcarrier_1': [], 'subcarrier_5': [], 'subcarrier_9': [], 'subcarrier_13': []}
+        
+        # Get current time to calculate relative timestamps
+        current_time = time.time()
+        
+        # Convert to relative time (seconds ago) for easier plotting
+        plot_formatted = {
+            'time': [],
+            'rssi': [],
+            'subcarrier_1': [],
+            'subcarrier_5': [],
+            'subcarrier_9': [],
+            'subcarrier_13': []
+        }
+        
+        for point in self.plot_data:
+            relative_time = point['time'] - current_time  # This will be negative (seconds ago)
+            plot_formatted['time'].append(relative_time)
+            plot_formatted['rssi'].append(point.get('rssi', 0))
+            plot_formatted['subcarrier_1'].append(point.get('subcarrier_1', 0))
+            plot_formatted['subcarrier_5'].append(point.get('subcarrier_5', 0))
+            plot_formatted['subcarrier_9'].append(point.get('subcarrier_9', 0))
+            plot_formatted['subcarrier_13'].append(point.get('subcarrier_13', 0))
+        
+        return plot_formatted
+    
     def close(self):
         self.stop_logging()
         if self.serial_conn and self.serial_conn.is_open:
@@ -177,12 +256,13 @@ def home():
     <!DOCTYPE html>
     <html>
     <head>
-        <title>ESP32 CSI Data Monitor</title>
+        <title>ESP32 CSI Data Monitor with Plots</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-            .container { max-width: 1200px; margin: 0 auto; }
+            .container { max-width: 1400px; margin: 0 auto; }
             .card { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
             .status { display: flex; gap: 20px; align-items: center; }
             .status-item { padding: 10px 15px; border-radius: 5px; font-weight: bold; }
@@ -198,12 +278,17 @@ def home():
             .data-display { font-family: monospace; font-size: 12px; }
             .latest-data { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
             .data-item { background: #e9ecef; padding: 10px; border-radius: 5px; }
-            #data-log { height: 400px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; background: #f8f9fa; }
+            #data-log { height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; background: #f8f9fa; }
+            .chart-container { height: 400px; margin: 20px 0; }
+            .plots-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            @media (max-width: 1200px) {
+                .plots-container { grid-template-columns: 1fr; }
+            }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>ESP32 CSI Data Monitor</h1>
+            <h1>ESP32 CSI Data Monitor with Real-time Plots</h1>
             
             <div class="card">
                 <h3>Connection Status</h3>
@@ -230,12 +315,152 @@ def home():
             </div>
             
             <div class="card">
+                <h3>Real-time Plots</h3>
+                <div class="plots-container">
+                    <div class="chart-container">
+                        <canvas id="rssiChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="subcarrierChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
                 <h3>Data Log</h3>
                 <div id="data-log"></div>
             </div>
         </div>
         
         <script>
+            // Chart configurations
+            const rssiChart = new Chart(document.getElementById('rssiChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'RSSI (dBm)',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'RSSI over Time'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (seconds ago)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'RSSI (dBm)'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 0 // Disable animation for real-time updates
+                    }
+                }
+            });
+            
+            const subcarrierChart = new Chart(document.getElementById('subcarrierChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Subcarrier 1',
+                            data: [],
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Subcarrier 5',
+                            data: [],
+                            borderColor: 'rgb(255, 205, 86)',
+                            backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Subcarrier 9',
+                            data: [],
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Subcarrier 13',
+                            data: [],
+                            borderColor: 'rgb(153, 102, 255)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Subcarrier Amplitudes over Time'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (seconds ago)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amplitude'
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 0 // Disable animation for real-time updates
+                    }
+                }
+            });
+            
+            function updateCharts() {
+                fetch('/api/plot_data')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.time && data.time.length > 0) {
+                            // Update RSSI chart
+                            rssiChart.data.labels = data.time;
+                            rssiChart.data.datasets[0].data = data.rssi;
+                            rssiChart.update('none');
+                            
+                            // Update subcarrier chart
+                            subcarrierChart.data.labels = data.time;
+                            subcarrierChart.data.datasets[0].data = data.subcarrier_1;
+                            subcarrierChart.data.datasets[1].data = data.subcarrier_5;
+                            subcarrierChart.data.datasets[2].data = data.subcarrier_9;
+                            subcarrierChart.data.datasets[3].data = data.subcarrier_13;
+                            subcarrierChart.update('none');
+                        }
+                    })
+                    .catch(error => console.error('Error updating charts:', error));
+            }
+            
             function updateStatus() {
                 fetch('/api/status')
                     .then(response => response.json())
@@ -267,6 +492,10 @@ def home():
                                 <div class="data-item"><strong>Channel:</strong> ${data.channel}</div>
                                 <div class="data-item"><strong>Bandwidth:</strong> ${data.bandwidth}</div>
                                 <div class="data-item"><strong>Data Length:</strong> ${data.data_length}</div>
+                                <div class="data-item"><strong>Subcarrier 1:</strong> ${data.subcarrier_1 ? data.subcarrier_1.toFixed(2) : 'N/A'}</div>
+                                <div class="data-item"><strong>Subcarrier 5:</strong> ${data.subcarrier_5 ? data.subcarrier_5.toFixed(2) : 'N/A'}</div>
+                                <div class="data-item"><strong>Subcarrier 9:</strong> ${data.subcarrier_9 ? data.subcarrier_9.toFixed(2) : 'N/A'}</div>
+                                <div class="data-item"><strong>Subcarrier 13:</strong> ${data.subcarrier_13 ? data.subcarrier_13.toFixed(2) : 'N/A'}</div>
                                 <div class="data-item"><strong>Timestamp:</strong> ${data.timestamp}</div>
                             `;
                         }
@@ -279,8 +508,8 @@ def home():
                     .then(data => {
                         const logDiv = document.getElementById('data-log');
                         if (data.length > 0) {
-                            logDiv.innerHTML = data.slice(-20).reverse().map(packet => 
-                                `<div>Packet #${packet.packet_num}: RSSI=${packet.rssi}dBm, Ch=${packet.channel}, Rate=${packet.rate}, Len=${packet.data_length} [${packet.timestamp.split('T')[1].split('.')[0]}]</div>`
+                            logDiv.innerHTML = data.slice(-15).reverse().map(packet => 
+                                `<div>Packet #${packet.packet_num}: RSSI=${packet.rssi}dBm, Ch=${packet.channel}, SC1=${packet.subcarrier_1 ? packet.subcarrier_1.toFixed(1) : 'N/A'}, SC5=${packet.subcarrier_5 ? packet.subcarrier_5.toFixed(1) : 'N/A'} [${packet.timestamp.split('T')[1].split('.')[0]}]</div>`
                             ).join('');
                             logDiv.scrollTop = 0;
                         }
@@ -313,6 +542,7 @@ def home():
                 updateStatus();
                 updateLatestData();
                 updateDataLog();
+                updateCharts();
             }, 1000);
             
             // Initial update
@@ -340,6 +570,12 @@ def api_recent():
         return jsonify(logger.get_recent_data())
     return jsonify([])
 
+@app.route('/api/plot_data')
+def api_plot_data():
+    if logger:
+        return jsonify(logger.get_plot_data())
+    return jsonify({'time': [], 'rssi': [], 'subcarrier_1': [], 'subcarrier_5': [], 'subcarrier_9': [], 'subcarrier_13': []})
+
 @app.route('/api/connect', methods=['POST'])
 def api_connect():
     global logger
@@ -349,6 +585,7 @@ def api_connect():
     # Close existing connection
     if logger:
         logger.close()
+        time.sleep(1)  # Give extra time for cleanup
     
     logger = CSIDataLogger(port)
     success = logger.connect()
