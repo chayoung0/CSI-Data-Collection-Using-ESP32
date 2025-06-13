@@ -2,10 +2,10 @@ menu "ESP32 CSI Collection Tool Config"
 
     config SSID
         string "SSID"
-        default "myssid"
+        default "DESKTOP-8H"
 
     config PASSWORD
         string "PASSWORD"
-        default "mypassword"
+        default "0f)8A374"
 
 endmenu
