@@ -84,19 +84,8 @@ The project uses FreeRTOS for efficient task management:
 ## Contributing
 Feel free to submit issues and enhancement requests!
 
-
-## Project Milestones & Delivery Plan
-
-| Milestone | Tasks | Deadline | Status<br>(✓/✗) |
-|-----------|-------|----------|-----------------|
-| 1. Requirement Analysis | Define project scope, objectives, and CSI data collection requirements. | [02/05/2025] | ✓ |
-| 2. System Design | ESP32 configuration, study Wi-Fi CSI architecture. | [16/05/2025] | ✓ |
-| 3. Prototype Development | Implement ESP32 firmware for CSI data collection and Python visualization script. | [30/05/2025] | ✓ |
-| 4. Testing & Debugging | Verify data accuracy, optimize capture rate, debug communication issues. | [05/06/2025] | ✗ |
-| 5. Final Demo & Report | Prepare presentation with live visualization, data flow diagrams and submit final report. | [09/06/2025] | ✗ |
-
 ---
 
-[How to create your First ESP IDF project](https://www.youtube.com/watch?v=oHHOCdmLiII)
-https://github.com/espressif/esp-csi
-[Getting Started with ESP32 Wireless Networking in C](https://www.youtube.com/watch?v=_dRrarmQiAM)
+[How to create your First ESP IDF project](https://www.youtube.com/watch?v=oHHOCdmLiII)  
+https://github.com/espressif/esp-csi  
+[Getting Started with ESP32 Wireless Networking in C](https://www.youtube.com/watch?v=_dRrarmQiAM)  
