@@ -396,38 +396,253 @@ def home():
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-            .container { max-width: 1400px; margin: 0 auto; }
-            .card { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            .status { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-            .status-item { padding: 10px 15px; border-radius: 5px; font-weight: bold; }
-            .connected { background: #d4edda; color: #155724; }
-            .disconnected { background: #f8d7da; color: #721c24; }
-            .logging { background: #d1ecf1; color: #0c5460; }
-            .stopped { background: #fff3cd; color: #856404; }
-            button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
-            .btn-primary { background: #007bff; color: white; }
-            .btn-success { background: #28a745; color: white; }
-            .btn-danger { background: #dc3545; color: white; }
-            .btn-warning { background: #ffc107; color: black; }
-            .data-display { font-family: monospace; font-size: 12px; }
-            .latest-data { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-            .data-item { background: #e9ecef; padding: 10px; border-radius: 5px; }
-            #data-log { height: 300px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; background: #f8f9fa; }
-            .chart-container { height: 400px; margin: 20px 0; }
-            .plots-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-            .plot-controls { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; flex-wrap: wrap; }
-            .control-group { display: flex; align-items: center; gap: 5px; }
-            select, input[type="text"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-            .multi-select { min-width: 200px; }
+            :root {
+                --primary-color: #36311F;  /* Dark brown */
+                --secondary-color: #59544B;  /* Medium brown */
+                --accent-color: #79A9D1;  /* Light blue */
+                --success-color: #7D8CA3;  /* Blue-gray */
+                --warning-color: #59544B;  /* Medium brown */
+                --danger-color: #36311F;  /* Dark brown */
+                --light-bg: #F5F6F8;  /* Very light gray */
+                --dark-text: #36311F;  /* Dark brown */
+                --light-text: #ffffff;
+            }
+
+            body { 
+                font-family: 'Space Grotesk', 'IBM Plex Mono', monospace;
+                margin: 0;
+                padding: 20px;
+                background: var(--light-bg);
+                color: var(--dark-text);
+                line-height: 1.6;
+            }
+
+            .container { 
+                max-width: 1400px; 
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            h1 {
+                color: var(--primary-color);
+                font-size: 2.2em;
+                margin-bottom: 1.5em;
+                text-align: center;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                font-family: 'Space Grotesk', sans-serif;
+            }
+
+            h3 {
+                color: var(--primary-color);
+                font-size: 1.4em;
+                margin-bottom: 1em;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-family: 'Space Grotesk', sans-serif;
+            }
+
+            .card { 
+                background: white; 
+                padding: 25px; 
+                margin: 20px 0; 
+                border-radius: 0; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                border-left: 4px solid var(--accent-color);
+            }
+
+            .status { 
+                display: flex; 
+                gap: 20px; 
+                align-items: center; 
+                flex-wrap: wrap;
+                margin-bottom: 20px;
+            }
+
+            .status-item { 
+                padding: 12px 20px; 
+                border-radius: 0; 
+                font-weight: 600;
+                font-size: 0.95em;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-family: 'Space Grotesk', sans-serif;
+            }
+
+            .connected { 
+                background: var(--accent-color); 
+                color: var(--light-text);
+            }
+
+            .disconnected { 
+                background: var(--danger-color); 
+                color: var(--light-text);
+            }
+
+            .logging { 
+                background: var(--success-color); 
+                color: var(--light-text);
+            }
+
+            .stopped { 
+                background: var(--warning-color); 
+                color: var(--light-text);
+            }
+
+            button { 
+                padding: 12px 24px; 
+                margin: 5px; 
+                border: none; 
+                border-radius: 0; 
+                cursor: pointer; 
+                font-size: 0.95em;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                font-family: 'Space Grotesk', sans-serif;
+            }
+
+            .btn-primary { 
+                background: var(--accent-color); 
+                color: var(--light-text);
+            }
+
+            .btn-success { 
+                background: var(--success-color); 
+                color: var(--light-text);
+            }
+
+            .btn-danger { 
+                background: var(--danger-color); 
+                color: var(--light-text);
+            }
+
+            .btn-warning { 
+                background: var(--warning-color); 
+                color: var(--light-text);
+            }
+
+            .data-display { 
+                font-family: 'IBM Plex Mono', monospace; 
+                font-size: 0.9em;
+            }
+
+            .latest-data { 
+                display: grid; 
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+                gap: 15px;
+            }
+
+            .data-item { 
+                background: var(--light-bg); 
+                padding: 15px; 
+                border-radius: 0;
+                font-size: 0.95em;
+                border-left: 3px solid var(--accent-color);
+                font-family: 'IBM Plex Mono', monospace;
+            }
+
+            #data-log { 
+                height: 300px; 
+                overflow-y: scroll; 
+                border: 1px solid #ddd; 
+                padding: 15px; 
+                background: var(--light-bg);
+                border-radius: 0;
+                font-family: 'IBM Plex Mono', monospace;
+                font-size: 0.9em;
+            }
+
+            .chart-container { 
+                height: 400px; 
+                margin: 20px 0;
+                background: white;
+                padding: 20px;
+                border-radius: 0;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                border-left: 4px solid var(--accent-color);
+            }
+
+            .plots-container { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 30px;
+            }
+
+            .plot-controls { 
+                display: flex; 
+                gap: 20px; 
+                align-items: center; 
+                margin-bottom: 20px; 
+                flex-wrap: wrap;
+                background: var(--light-bg);
+                padding: 15px;
+                border-radius: 0;
+                border-left: 4px solid var(--accent-color);
+            }
+
+            .control-group { 
+                display: flex; 
+                align-items: center; 
+                gap: 10px;
+            }
+
+            select, input[type="text"] { 
+                padding: 10px 15px; 
+                border: 2px solid var(--accent-color); 
+                border-radius: 0;
+                font-size: 0.95em;
+                font-family: 'IBM Plex Mono', monospace;
+            }
+
+            select:focus, input[type="text"]:focus {
+                border-color: var(--primary-color);
+                outline: none;
+            }
+
+            .multi-select { 
+                min-width: 200px;
+            }
+
             @media (max-width: 1200px) {
-                .plots-container { grid-template-columns: 1fr; }
+                .plots-container { 
+                    grid-template-columns: 1fr; 
+                }
+                
+                .container {
+                    padding: 10px;
+                }
+                
+                .card {
+                    padding: 15px;
+                }
+            }
+
+            /* Custom scrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: var(--light-bg);
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: var(--accent-color);
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--primary-color);
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>ESP32 CSI Data Monitor with Configurable Real-time Plots</h1>
+            <h1>ESP32 Real-Time CSI Data Monitor</h1>
             
             <div class="card">
                 <h3>Connection Status</h3>
