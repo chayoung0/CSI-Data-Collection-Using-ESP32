@@ -56,7 +56,7 @@ python web_app.py
 ```
 3. Open your browser and navigate to `http://localhost:5000`
 
-![image](https://github.com/user-attachments/assets/3efe72d9-5933-4f03-8079-e1cefbf4855f)
+![image](https://github.com/user-attachments/assets/99b9bce7-e8c1-41d6-bc94-7a494d9b1ea7)
 
 
 ## FreeRTOS Implementation
