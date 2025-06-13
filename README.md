@@ -56,6 +56,9 @@ python web_app.py
 ```
 3. Open your browser and navigate to `http://localhost:5000`
 
+![image](https://github.com/user-attachments/assets/3efe72d9-5933-4f03-8079-e1cefbf4855f)
+
+
 ## FreeRTOS Implementation
 The project uses FreeRTOS for efficient task management:
 - WiFi Initialization Task (Priority: 5)
@@ -80,12 +83,11 @@ The project uses FreeRTOS for efficient task management:
 - [ESP-IDF Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
 - [ESP32 CSI Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#wi-fi-channel-state-information)
 - [FreeRTOS Documentation](https://www.freertos.org/Documentation/RTOS_book.html)
+- [How to create your First ESP IDF project](https://www.youtube.com/watch?v=oHHOCdmLiII)  
+- https://github.com/espressif/esp-csi  
+- [Getting Started with ESP32 Wireless Networking in C](https://www.youtube.com/watch?v=_dRrarmQiAM)
 
 ## Contributing
 Feel free to submit issues and enhancement requests!
 
 ---
-
-[How to create your First ESP IDF project](https://www.youtube.com/watch?v=oHHOCdmLiII)  
-https://github.com/espressif/esp-csi  
-[Getting Started with ESP32 Wireless Networking in C](https://www.youtube.com/watch?v=_dRrarmQiAM)  
