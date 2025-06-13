@@ -7,14 +7,15 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_wifi_types.h"  // Added for CSI data types
+#include "esp_timer.h"
 
 // subcarrier sayısını arttırmak için b/g/n ayarı yapmam lazım!!! unutma
 
 static const char *TAG = "csi_example";
 
 // WiFi credentials
-#define WIFI_SSID "DESKTOP-8H"
-#define WIFI_PASS "0f)8A374"
+#define WIFI_SSID "hsgdsgsd"
+#define WIFI_PASS "hsgsdfadg"
 
 // CSI callback function - this gets called every time CSI data is received
 //This is like a "listener" function - every time the ESP32 receives WiFi packets with CSI data, this function automatically gets called.
@@ -22,31 +23,44 @@ static const char *TAG = "csi_example";
     Think of it like a "note" you can attach. We set it to NULL because we don't need it, 
     but you could pass a structure with your own data. */
 static void wifi_csi_cb(void *ctx, wifi_csi_info_t *info){
+    /*
     // Basic CSI information
     ESP_LOGI(TAG, "CSI Data Received!");
-    ESP_LOGI(TAG, "RSSI: %d dBm", info->rx_ctrl.rssi);
-    ESP_LOGI(TAG, "Rate: %d", info->rx_ctrl.rate);
+    ESP_LOGI(TAG, "RSSI: %d dBm", info->rx_ctrl.rssi); //(closer to 0 = stronger)
+    ESP_LOGI(TAG, "Rate: %d", info->rx_ctrl.rate); //WiFi data rate/speed
     ESP_LOGI(TAG, "Channel: %d", info->rx_ctrl.channel);
-    ESP_LOGI(TAG, "Bandwidth: %d", info->rx_ctrl.cwb);
+    ESP_LOGI(TAG, "Bandwidth: %d", info->rx_ctrl.cwb); //0 = 20MHz channel width (normal)
     ESP_LOGI(TAG, "Data Length: %d bytes", info->len);
+    */
+
+    // Print CSI header info as JSON for easy Python parsing
+    printf("CSI_START{");
+    printf("\"rssi\":%d,", info->rx_ctrl.rssi);
+    printf("\"rate\":%d,", info->rx_ctrl.rate);
+    printf("\"channel\":%d,", info->rx_ctrl.channel);
+    printf("\"bandwidth\":%d,", info->rx_ctrl.cwb);
+    printf("\"len\":%d,", info->len);
+    printf("\"timestamp\":%lld,", esp_timer_get_time()); // microseconds since boot
     
     // The actual CSI data is in info->buf
-    // Each CSI sample contains amplitude and phase information
+    // Output ALL CSI data as comma-separated values
+    printf("\"csi_data\":[");
     if (info->buf && info->len > 0) {
-        // CSI data is complex numbers (real + imaginary parts)
-        // For now, let's just show the first few samples
         int8_t *csi_data = (int8_t *)info->buf;
         
-        ESP_LOGI(TAG, "First few CSI samples:");
-        for (int i = 0; i < 8 && i < info->len; i += 2) {
-            // Each CSI sample has real and imaginary parts
-            int8_t real = csi_data[i];
-            int8_t imag = csi_data[i + 1];
-            ESP_LOGI(TAG, "Sample %d: Real=%d, Imag=%d", i/2, real, imag);
+        for (int i = 0; i < info->len; i++) {
+            printf("%d", csi_data[i]);
+            if (i < info->len - 1) {
+                printf(",");
+            }
         }
     }
+    printf("]}CSI_END\n");
     
-    ESP_LOGI(TAG, "------------------------");
+    // ESP_LOGI(TAG, "------------------------");
+
+    ESP_LOGD(TAG, "CSI packet received - RSSI: %d, Length: %d", info->rx_ctrl.rssi, info->len);
+
 }
 
 
