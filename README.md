@@ -37,7 +37,13 @@
 1. Install ESP-IDF v5.4
 2. Clone this repository
 3. Configure your WiFi credentials in `sdkconfig`
-4. Build and flash the firmware:
+```bash
+# ESP32 CSI Collection Tool Config
+CONFIG_SSID="myssid"
+CONFIG_PASSWORD="mypassword"
+# end of ESP32 CSI Collection Tool Config
+```
+5. Build and flash the firmware:
 ```bash
 idf.py build
 idf.py -p (PORT) flash
