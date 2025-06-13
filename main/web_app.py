@@ -15,6 +15,7 @@ app = Flask(__name__)
 
 class CSIDataLogger:
     def __init__(self, port, baud_rate=115200):
+        # Basic serial connection settings
         self.port = port
         self.baud_rate = baud_rate
         self.serial_conn = None
@@ -24,22 +25,28 @@ class CSIDataLogger:
         self.packet_count = 0
         self.session_start_time = None
         
-        # Create session directory
+        # Each logging session gets its own directory with a unique ID
+        # This helps keep data organized when doing multiple experiments
         self.session_id = str(uuid.uuid4())[:8]
         self.session_dir = f"sessions/session-{self.session_id}"
         os.makedirs(self.session_dir, exist_ok=True)
         
-        # Store recent data for web display (keep last 100 packets)
+        # Keep track of recent packets for the web display
+        # Using a deque with maxlen=100 means we only keep the last 100 packets
+        # This prevents memory from growing too large during long sessions
         self.recent_data = deque(maxlen=100)
         self.latest_packet = {}
         
-        # Store plotting data (keep last 200 points for smoother plots)
+        # Store data points for plotting
+        # We keep 200 points for smooth scrolling plots
         self.plot_data = deque(maxlen=200)
         
-        # Track available subcarriers for dropdown
+        # Track which subcarriers we've seen data for
+        # This helps populate the dropdown menu in the web UI
         self.available_subcarriers = set()
         
     def connect(self):
+        """Try to connect to the ESP32 over serial port"""
         try:
             self.serial_conn = serial.Serial(self.port, self.baud_rate, timeout=1)
             print(f"Connected to ESP32 on {self.port}")
@@ -49,12 +56,15 @@ class CSIDataLogger:
             return False
 
     def setup_csv_file(self):
+        """Create a new CSV file for this logging session"""
+        # Create filename with timestamp so we know when the data was collected
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"csi_data_{timestamp}.csv"
         filepath = os.path.join(self.session_dir, filename)
         
         self.csv_file = open(filepath, 'w', newline='')
         
+        # Define what data we'll store in each row
         fieldnames = [
             'timestamp', 'rssi', 'rate', 'channel', 'bandwidth', 
             'data_length', 'esp_timestamp', 'csi_data'
@@ -67,6 +77,16 @@ class CSIDataLogger:
         return filepath
     
     def parse_csi_line(self, line):
+        """Extract CSI data from the ESP32's output format
+        
+        The ESP32 sends data in this format:
+        CSI_START{"rssi":-85,"rate":11,"channel":11,"bandwidth":0,"len":128,"timestamp":50136694,"csi_data":[...]}CSI_END
+        
+        We need to:
+        1. Find the JSON data between CSI_START and CSI_END
+        2. Parse it into a Python dictionary
+        3. Return the parsed data or None if something goes wrong
+        """
         print(f"Attempting to parse line: {line[:200]}...")  # Debug log
         match = re.search(r'CSI_START(\{.*?\})CSI_END', line)
         
@@ -86,18 +106,28 @@ class CSIDataLogger:
         return None
     
     def analyze_csi_structure(self, csi_data):
-        """Analyze CSI data structure to identify amplitude/phase pairs"""
+        """Figure out what CSI data we're getting from the ESP32
+        
+        The CSI data is an array of values, where each value represents
+        a subcarrier. We keep track of which subcarriers we've seen
+        so we can show them in the web UI's dropdown menu.
+        """
         if not csi_data or not isinstance(csi_data, list):
             return {}
         
-        # Update available subcarriers
+        # Add each subcarrier index to our set of available ones
         for i in range(len(csi_data)):
             self.available_subcarriers.add(i)
         
         return {'total_subcarriers': len(csi_data)}
     
     def extract_subcarrier_data(self, csi_data, subcarrier_indices):
-        """Extract raw subcarrier values directly from CSI data array"""
+        """Get the raw values for specific subcarriers
+        
+        The ESP32 sends CSI data as an array of integers, where each
+        integer represents the signal strength for that subcarrier.
+        This function extracts just the values we want to plot.
+        """
         if not csi_data:
             print("No CSI data provided")
             return {}
@@ -109,7 +139,7 @@ class CSIDataLogger:
         for idx in subcarrier_indices:
             try:
                 if idx < len(csi_data):
-                    # Use raw value directly without any transformation
+                    # Get the raw value for this subcarrier
                     value = csi_data[idx]
                     result[f'subcarrier_{idx}'] = value
                     print(f"Subcarrier {idx} value: {value}")
@@ -125,6 +155,13 @@ class CSIDataLogger:
         return result
     
     def start_logging(self):
+        """Start collecting CSI data in a background thread
+        
+        This function:
+        1. Checks if we're already connected and not already logging
+        2. Creates a new CSV file for this session
+        3. Starts a background thread to read data from the ESP32
+        """
         if not self.serial_conn:
             print("Not connected to ESP32")
             return False
@@ -137,24 +174,35 @@ class CSIDataLogger:
         self.session_start_time = time.time()
         self.csv_filename = self.setup_csv_file()
         
-        # Start logging in a separate thread
+        # Start the logging loop in a separate thread
+        # This keeps the web UI responsive while we collect data
         self.logging_thread = threading.Thread(target=self._log_loop)
-        self.logging_thread.daemon = True
+        self.logging_thread.daemon = True  # Thread will exit when main program exits
         self.logging_thread.start()
         
         return True
     
     def _log_loop(self):
+        """Main loop that reads data from the ESP32
+        
+        This function runs in a background thread and:
+        1. Reads data from the serial port
+        2. Parses the CSI data
+        3. Saves it to CSV
+        4. Updates the data structures used by the web UI
+        """
         try:
             print("Starting CSI data collection...")
             
             while self.is_running:
                 if self.serial_conn and self.serial_conn.in_waiting > 0:
                     try:
+                        # Read a line from the ESP32
                         line = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
                         print(f"Raw line from serial: {line[:200]}...")  # Debug log
                         
                         if line:
+                            # Try to parse the CSI data
                             csi_data = self.parse_csi_line(line)
                             
                             if csi_data:
@@ -162,12 +210,13 @@ class CSIDataLogger:
                                 python_timestamp = datetime.datetime.now().isoformat()
                                 current_time = time.time()
                                 
-                                # Analyze CSI structure
+                                # Get the CSI array and analyze its structure
                                 csi_array = csi_data.get('csi_data', [])
                                 print(f"CSI array length: {len(csi_array)}")  # Debug log
                                 print(f"First 10 CSI values: {csi_array[:10]}")  # Debug log
                                 self.analyze_csi_structure(csi_array)
                                 
+                                # Prepare the row for the CSV file
                                 row = {
                                     'timestamp': python_timestamp,
                                     'rssi': csi_data.get('rssi', ''),
@@ -179,13 +228,13 @@ class CSIDataLogger:
                                     'csi_data': json.dumps(csi_array)
                                 }
                                 
-                                # Write to CSV
+                                # Save to CSV
                                 if self.csv_writer:
                                     self.csv_writer.writerow(row)
-                                    self.csv_file.flush()
+                                    self.csv_file.flush()  # Make sure data is written to disk
                                     print(f"Wrote packet #{self.packet_count} to CSV")  # Debug log
                                 
-                                # Store for web display
+                                # Update the data structures used by the web UI
                                 self.packet_count += 1
                                 display_data = {
                                     'packet_num': self.packet_count,
@@ -199,23 +248,31 @@ class CSIDataLogger:
                                     'time_passed': current_time - self.session_start_time if self.session_start_time else 0
                                 }
                                 
-                                # Store plotting data with timestamp
+                                # Add subcarrier data to display
+                                for i in range(len(csi_array)):
+                                    display_data[f'subcarrier_{i}'] = csi_array[i]
+                                
+                                # Update the data structures for the web UI
+                                self.recent_data.append(display_data)
+                                self.latest_packet = display_data
+                                
+                                # Store data for plotting
                                 plot_point = {
                                     'time': current_time,
                                     'rssi': csi_data.get('rssi', 0)
                                 }
                                 
-                                # Add all CSI data points to plot data
+                                # Add all CSI values to the plot data
                                 for i in range(len(csi_array)):
                                     plot_point[f'subcarrier_{i}'] = csi_array[i]
                                 
                                 self.plot_data.append(plot_point)
-                                print(f"Added plot point: {plot_point}")  # Debug log
+                                print(f"Added plot point: {plot_point}")
                                 
                                 print(f"CSI packet #{self.packet_count} - RSSI: {csi_data.get('rssi')}dBm")
                             
                             else:
-                                # Handle other ESP32 output
+                                # Print any other output from the ESP32
                                 if line and not line.startswith('CSI_START'):
                                     print(f"ESP32: {line}")
                     except Exception as e:
@@ -223,7 +280,8 @@ class CSIDataLogger:
                         import traceback
                         traceback.print_exc()
                 
-                time.sleep(0.01)  # Small delay to prevent excessive CPU usage
+                # Small delay to prevent using too much CPU
+                time.sleep(0.01)
                 
         except Exception as e:
             print(f"Logging error: {e}")
@@ -233,11 +291,21 @@ class CSIDataLogger:
             self.is_running = False
     
     def stop_logging(self):
+        """Stop collecting CSI data and clean up"""
         self.is_running = False
         if hasattr(self, 'logging_thread'):
-            self.logging_thread.join(timeout=1)
+            self.logging_thread.join(timeout=1)  # Wait up to 1 second for thread to finish
     
     def get_status(self):
+        """Get the current status of the logger
+        
+        Returns a dictionary with:
+        - Whether we're connected to the ESP32
+        - Whether we're currently logging
+        - How many packets we've collected
+        - The serial port we're using
+        - The current session ID and directory
+        """
         return {
             'connected': self.serial_conn and self.serial_conn.is_open,
             'logging': self.is_running,
@@ -248,12 +316,19 @@ class CSIDataLogger:
         }
     
     def get_recent_data(self):
+        """Get the last 100 packets for the web UI's data log"""
         return list(self.recent_data)
     
     def get_latest_packet(self):
+        """Get the most recent packet for the web UI's latest data display"""
         return self.latest_packet
     
     def get_available_subcarriers(self):
+        """Get a list of subcarriers we've seen data for
+        
+        This is used to populate the dropdown menu in the web UI
+        where users can select which subcarriers to plot.
+        """
         return sorted(list(self.available_subcarriers))
     
     def get_plot_data(self, selected_subcarriers=None):
@@ -703,6 +778,8 @@ def home():
     </body>
     </html>
     '''
+
+# flask stuff
 
 @app.route('/api/status')
 def api_status():
